@@ -43,8 +43,7 @@ kubectl apply -f pg-instance-example-1.yaml
 kubectl get postgres
 
 # Repeat following until all pods are ready.
-kubectl get all
-kubectl get secret
+kubectl get all,secret
 
 # Let's connect to the database
 kubectl exec -it pg-instance-example-0 -- /bin/bash
@@ -105,8 +104,6 @@ kubectl exec -t pg-instance-example-0 -- bash -c "pgbackrest restore --stanza=po
 # Restart the pg_auto_failover child process (which will bring a Postgres process backubectlup):
 kubectl exec -t pg-instance-example-0 -- kill -CONT $PG_AUTO_PID
 
-kubectl get po
-
 # to to site and see if you see the data
 kubectl exec -it pg-instance-example-0 -- bash -c "psql pg-instance-example -c 'select * from album;'"
 
@@ -114,23 +111,20 @@ kubectl exec -it pg-instance-example-0 -- bash -c "psql pg-instance-example -c '
 # Good doc: https://www.citusdata.com/blog/2019/05/30/introducing-pg-auto-failover/
 bat pg-instance-example-3.yaml
 kubectl apply -f pg-instance-example-3.yaml
-kubectl get postgres
-kubectl get po
+kubectl get postgres,po
 
 # Now let's watch and see what happens if we kill the primary node in the cluster
 kubectl exec -ti pod/pg-instance-example-0 -- pg_autoctl show state
 
 # update below to match secondary
 # crazy statement greps for line that includes secondary, then grabs the full node name, then splits on : to retrieve node wihtout port, then gets first item
-SECONDARY_POD=$(kubectl exec -ti pod/pg-instance-example-0 -- pg_autoctl show state | grep secondary | awk '{print $5}' | cut -d ':' -f 1 | cut -d '.' -f 1)
-watch -n 3 kubectl exec -ti pod/$SECONDARY_POD -- pg_autoctl show state
+watch -n 3 kubectl exec -ti pod/$(kubectl exec -ti pod/pg-instance-example-0 -- pg_autoctl show state | grep secondary | awk '{print $5}' | cut -d ':' -f 1 | cut -d '.' -f 1) -- pg_autoctl show state
 
 # open new screen
 watch kubectl get po
 
 # open new screen, then delete the primary pod
-PRIMARY_POD=$(kubectl exec -ti pod/pg-instance-example-0 -- pg_autoctl show state | grep primary | awk '{print $5}' | cut -d ':' -f 1 | cut -d '.' -f 1)
-kubectl delete po $PRIMARY_POD
+kubectl delete po $(kubectl exec -ti pod/pg-instance-example-0 -- pg_autoctl show state | grep primary | awk '{print $5}' | cut -d ':' -f 1 | cut -d '.' -f 1)
 
 # see the monitor will re-assign the primary
 
