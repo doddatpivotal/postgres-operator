@@ -1,0 +1,40 @@
+#@ load("@ytt:overlay", "overlay")
+#@ load("@ytt:data", "data")
+
+#! By adding this label to pods, the app will appear in TMC
+#@overlay/match by=overlay.subset({"kind": "Deployment", "metadata" : {"name": "spring-music"}}), expects="1+"
+---
+spec:
+  template:
+    spec:
+      containers:
+        #@overlay/match by=overlay.map_key("name")
+        - name: spring-music
+          image: #@ data.values.image
+          env:
+            #@overlay/match by=overlay.map_key("name")
+            - name: INSTANCE_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: pg-instance-example-db-secret
+            #@overlay/match by=overlay.map_key("name")
+            - name: NAMESPACE_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: pg-instance-example-db-secret
+            #@overlay/match by=overlay.map_key("name")
+            - name: DATABASE_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: pg-instance-example-db-secret
+            #@overlay/match by=overlay.map_key("name")
+            - name: DATABASE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: pg-instance-example-db-secret
+            #@overlay/match by=overlay.map_key("name")
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: pg-instance-example-db-secret
+

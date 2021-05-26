@@ -1,0 +1,11 @@
+apiVersion: sql.tanzu.vmware.com/v1
+kind: Postgres
+metadata:
+  name: pg-instance-example
+  namespace: postgres
+spec:
+  memory: 850Mi
+  storageClassName: default
+  serviceType: LoadBalancer
+  backupLocationSecret:
+    name: s3-secret-example

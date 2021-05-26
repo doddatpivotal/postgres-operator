@@ -1,0 +1,9 @@
+#@ load("@ytt:data", "data")
+
+operatorImageRepository: #@ data.values.postgresOperator.registry + "/" + data.values.postgresOperator.project + "/postgres-operator"
+operatorImageTag: #@ "v" + data.values.postgresOperator.version
+
+postgresImageRepository: #@ data.values.postgresOperator.registry + "/" + data.values.postgresOperator.project + "/postgres-instance"
+postgresImageTag: #@ "v" + data.values.postgresOperator.version
+
+dockerRegistrySecretName: regsecret

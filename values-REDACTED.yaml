@@ -1,0 +1,14 @@
+#@data/values
+---
+postgresOperator:
+  registry: # your private registry.  e.g. harbor.bearisland.tkg-vsphere-lab.winterfell.life
+  version: 1.1.0
+  project: # your private registry project.  e.g. postgres
+  username: # your private registry username.  e.g. admin
+  password: REDACTED
+image: # your image.  e.g. harbor.bearisland.tkg-vsphere-lab.winterfell.life/spring-music/spring-music:latest
+bucket: dpfeffer-postgresql-backups
+region: us-east-2
+endpoint: s3.us-east-2.amazonaws.com
+key: # your AWS Key
+secret: # your AWS Key
