@@ -1,5 +1,15 @@
 # Demo
 
+## Overview
+
+In the following demo we explore the Tanzu Postgres Operator in a series of incremental use cases.  It is key highlight that the operator codifies the implementation details and opinions that the platform operator and data engineer have established, and provides a consistent way to manage a fleet of postgres instances.  
+
+1. Review Postgres Operator
+2. Deploy and validate a Postgres Instance
+3. Bind an app to the instance
+4. Add and validate backup and restore capability
+5. Add and validate HA capability
+
 ## Prereqs
 
 ```bash
@@ -15,7 +25,11 @@ docker push ${REGISTRY}/${PROJECT}/spring-music:latest
 ## Demo
 
 ```bash
-# let's checkubectlout the operator
+
+# introduce environmental values
+bat values-REDACTED.yaml
+
+# let's check out the operator
 kubens default
 kubectl get all
 
@@ -34,29 +48,36 @@ kubectl get secret
 
 # Let's connect to the database
 kubectl exec -it pg-instance-example-0 -- /bin/bash
+# show databases
 psql pg-instance-example -c '\l'
+# show empty no tables
 psql pg-instance-example -c '\dt'
 exit
 
 # let's bind an application
 bat /tmp/postgres-for-kubernetes-v${VERSION}/sample-app/spring-music.yaml
 
-ytt -f local-config/values.yaml -f image-overlay.yaml -f /tmp/postgres-for-kubernetes-v${VERSION}/sample-app/spring-music.yaml | kubectl apply -f -
+# deploy the application, overlaying our container image and instance name
+ytt -f $PARAMS_YAML -f image-overlay.yaml -f /tmp/postgres-for-kubernetes-v${VERSION}/sample-app/spring-music.yaml | kubectl apply -f -
 
 kubectl get all
 
-# go visit the application
+# go visit the application using service from above
 
 # how about adding backup options
 bat s3-secret-example.yaml
-ytt -f s3-secret-example.yaml -f local-config/values.yaml | kubectl apply -f -
+ytt -f s3-secret-example.yaml -f $PARAMS_YAML | kubectl apply -f -
 bat pg-instance-example-2.yaml
 kubectl apply -f pg-instance-example-2.yaml
 kubectl get postgres
 kubectl get po
 
+# show nothing is s3 bucket
+
 kubectl exec -it pg-instance-example-0 -- bash -c 'pgbackrest stanza-create --stanza=postgres-pg-instance-example'
 kubectl exec -it pg-instance-example-0 -- bash -c 'pgbackrest backup --stanza=postgres-pg-instance-example'
+
+# show backup in s3
 
 # grab the current timestamp so that we know what point to restore to.
 CUR_DATE=$(date +"%Y-%m-%d %H:%M:%S")
@@ -90,6 +111,7 @@ kubectl get po
 kubectl exec -it pg-instance-example-0 -- bash -c "psql pg-instance-example -c 'select * from album;'"
 
 # How about HA
+# Good doc: https://www.citusdata.com/blog/2019/05/30/introducing-pg-auto-failover/
 bat pg-instance-example-3.yaml
 kubectl apply -f pg-instance-example-3.yaml
 kubectl get postgres
@@ -106,9 +128,11 @@ watch -n 3 kubectl exec -ti pod/$SECONDARY_POD -- pg_autoctl show state
 # open new screen
 watch kubectl get po
 
-# open new screen, then update below to match primary
+# open new screen, then delete the primary pod
 PRIMARY_POD=$(kubectl exec -ti pod/pg-instance-example-0 -- pg_autoctl show state | grep primary | awk '{print $5}' | cut -d ':' -f 1 | cut -d '.' -f 1)
 kubectl delete po $PRIMARY_POD
+
+# see the monitor will re-assign the primary
 
 # close both screens
 
