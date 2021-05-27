@@ -68,7 +68,7 @@ kubectl create secret docker-registry regsecret \
 ## Deploy the operator
 
 ```bash
-helm install postgres-operator ${TEMP_PATH}/operator/ -f values.yaml
+ytt -f values -f $PARAMS_YAML | helm install postgres-operator ${TEMP_PATH}/operator/ -f -
 ```
 
 ## Go ahead and follow the demo script
