@@ -1,6 +1,6 @@
 # Tanzu Sql - Posgres
 
-[Docs](https://postgres-kubernetes.docs.pivotal.io/1-1/installing.html)
+[Docs](https://docs.vmware.com/en/VMware-Tanzu-SQL-with-Postgres-for-Kubernetes/1.7/tanzu-postgres-k8s/GUID-install-operator.html)
 
 ## Environment Value Pre-reqs
 
@@ -34,41 +34,35 @@ REGISTRY=$(yq e .postgresOperator.registry $PARAMS_YAML)
 PROJECT=$(yq e .postgresOperator.project $PARAMS_YAML)
 REGISTRY_USERNAME=$(yq e .postgresOperator.username $PARAMS_YAML)
 REGISTRY_PASSWORD=$(yq e .postgresOperator.password $PARAMS_YAML)
+TANZU_NET_USERNAME=$(yq e .tanzuNet.username $PARAMS_YAML)
+TANZU_NET_PASSWORD=$(yq e .tanzuNet.password $PARAMS_YAML)
 ```
 
-## Download & Extract
+## Download & Extract the operator chart
 
 ```bash
-pivnet download-product-files --product-slug='tanzu-sql-postgres' --release-version='1.1.0' --product-file-id=893946 --download-dir /tmp
-tar -zxvf /tmp/postgres-for-kubernetes-v${VERSION}.tar.gz -C /tmp
-TEMP_PATH=/tmp/postgres-for-kubernetes-v${VERSION}
+helm registry login registry.tanzu.vmware.com \
+       --username=$TANZU_NET_USERNAME \
+       --password=$TANZU_NET_PASSWORD
+
+
+helm pull oci://registry.tanzu.vmware.com/tanzu-sql-postgres/postgres-operator-chart --version v$VERSION --untar --untardir /tmp
+
 ```
 
-# Push to Harbor
-
-```bash
-INSTANCE_IMAGE_NAME="${REGISTRY}/${PROJECT}/postgres-instance:$(cat ${TEMP_PATH}/images/postgres-instance-tag)"
-docker tag $(cat ${TEMP_PATH}/images/postgres-instance-id) ${INSTANCE_IMAGE_NAME}
-docker push ${INSTANCE_IMAGE_NAME}
-
-OPERATOR_IMAGE_NAME="${REGISTRY}/${PROJECT}/postgres-operator:$(cat ${TEMP_PATH}/images/postgres-operator-tag)"
-docker tag $(cat ${TEMP_PATH}/images/postgres-operator-id) ${OPERATOR_IMAGE_NAME}
-docker push ${OPERATOR_IMAGE_NAME}
-```
-
-# Create Registry Secret
+# Install the Operator
 
 ```bash
 kubectl create secret docker-registry regsecret \
-    --docker-server=${REGISTRY} \
-    --docker-username=${REGISTRY_USERNAME} \
-    --docker-password=${REGISTRY_PASSWORD}
-```
+    --docker-server=https://registry.tanzu.vmware.com/ \
+    --docker-username=$TANZU_NET_USERNAME \
+    --docker-password=$TANZU_NET_PASSWORD \
+    --namespace service-instances
 
-## Deploy the operator
+helm install my-postgres-operator /tmp/postgres-operator/ --wait  \
+    --namespace service-instances
 
-```bash
-ytt -f values -f $PARAMS_YAML | helm install postgres-operator ${TEMP_PATH}/operator/ -f -
+kubectl get all --selector app=postgres-operator -n service-instances
 ```
 
 ## Go ahead and follow the demo script
